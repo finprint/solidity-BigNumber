@@ -24,7 +24,7 @@ library BigNumber {
       * returns: instance r.
       */
     function _new(bytes memory val, bool neg, bool copy) internal view returns(instance memory r){ 
-        require(val.length % 32 == 0);
+        require(val.length % 32 == 0, "value must be word-aligned");
         if(!copy) {
           r.val = val;
         }
@@ -409,13 +409,13 @@ library BigNumber {
 
 
         if(a.neg==true || b.neg==true){ //first handle sign.
-            if (a.neg==true && b.neg==true) require(result.neg==false);
-            else require(result.neg==true);
-        } else require(result.neg==false);
+            if (a.neg==true && b.neg==true) require(result.neg==false, "incorrect sign");
+            else require(result.neg==true, "incorrect sign");
+        } else require(result.neg==false, "incorrect sign");
         
         instance memory zero = instance(hex"0000000000000000000000000000000000000000000000000000000000000000",false,0);
 
-        require(!(cmp(b,zero,true)==0)); //require denominator to not be zero.
+        require(!(cmp(b,zero,true)==0), "denominator cannot be zero"); //require denominator to not be zero.
 
         if(cmp(result,zero,true)==0){                //if result is 0:
             if(cmp(a,b,true)==-1) return result;     // return zero if a<b (numerator < denominator)
@@ -428,7 +428,7 @@ library BigNumber {
         instance memory one = instance(hex"0000000000000000000000000000000000000000000000000000000000000001",false,1);
         instance memory snd = prepare_modexp(a,one,fst); //a mod (b*result)
 
-        require(cmp(prepare_add(fst,snd),a,true)==0); // ((b*result) + a % (b*result)) == a
+        require(cmp(prepare_add(fst,snd),a,true)==0, "invalid division"); // ((b*result) + a % (b*result)) == a
 
         return result;
     }
@@ -449,7 +449,7 @@ library BigNumber {
       * returns: instance result.
       */    
     function prepare_modexp(instance memory base, instance memory exponent, instance memory modulus) internal view returns(instance memory result) {
-        require(exponent.neg==false); //if exponent is negative, other method with this same name should be used.
+        require(exponent.neg==false, "the exponent cannot be negative"); //if exponent is negative, other method with this same name should be used.
 
         bytes memory _result = modexp(base.val,exponent.val,modulus.val);
         //get bitlen of result (TODO: optimise. we know bitlen is in the same byte as the modulus bitlen byte)
@@ -476,9 +476,9 @@ library BigNumber {
       */ 
      function prepare_modexp(instance memory base, instance memory base_inverse, instance memory exponent, instance memory modulus) internal view returns(instance memory result) {
         // base^-exp = (base^-1)^exp
-        require(exponent.neg==true);
+        require(exponent.neg==true, "the exponent must be negative");
 
-        require(cmp(base_inverse, mod_inverse(base,modulus,base_inverse), true)==0); //assert base_inverse == inverse(base, modulus)
+        require(cmp(base_inverse, mod_inverse(base,modulus,base_inverse), true)==0, "incorrect base inverse"); //assert base_inverse == inverse(base, modulus)
             
         exponent.neg = false; //make e positive
 
@@ -586,7 +586,7 @@ library BigNumber {
       * returns: instance user_result.
       */
     function mod_inverse(instance memory base, instance memory modulus, instance memory user_result) internal view returns(instance memory){
-        require(base.neg==false && modulus.neg==false); //assert positivity of inputs.
+        require(base.neg==false && modulus.neg==false, "base and mod must be positive"); //assert positivity of inputs.
             
         /*
          * the following proves:
@@ -595,7 +595,7 @@ library BigNumber {
          * otherwise it fails.
          */        
         instance memory one = instance(hex"0000000000000000000000000000000000000000000000000000000000000001",false,1);
-        require(cmp(modmul(base, user_result, modulus),one,true)==0);
+        require(cmp(modmul(base, user_result, modulus),one,true)==0, "not an inverse");
 
         return user_result;
      }

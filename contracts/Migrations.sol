@@ -1,4 +1,6 @@
-pragma solidity >=0.4.20 <0.6;
+pragma solidity ^0.5.7;
+pragma experimental ABIEncoderV2;
+
 
 contract Migrations {
   address public owner;

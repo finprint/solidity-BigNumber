@@ -1,27 +1,28 @@
-pragma solidity >=0.4.20 <0.6;
+pragma solidity ^0.5.7;
+pragma experimental ABIEncoderV2;
 
 import "./BigNumber.sol";
 
-/* 
+/*
  * mock contract to access BigNumber library for testing.
  * Library is mostly internal functions and tf. requires a contract to instantiate it to be used.
  * js file in ../test directory instantiates and uses this contract.
  */
 
 contract MockBigNumber {
-  using BigNumber for *; 
-  
-  //use these for printing in remix when using local node.
-  event result_instance(bytes, bool, uint); 
+  using BigNumber for *;
 
-  event result_bool(bool a);     
+  //use these for printing in remix when using local node.
+  event result_instance(bytes, bool, uint);
+
+  event result_bool(bool a);
 
   event result_string(string a);
 
   event result_multi(bytes a, uint a_bitlen, bytes b, uint b_bitlen, bytes c, uint c_bitlen);
 
 
-  function js_call() public returns(bytes memory,bool,uint){
+  function js_call() public returns (bytes memory,bool,uint){
     //** add hard-coded values as neccessary here ***//
 
     bytes memory a_val = hex"00000000000000000000000000000000000000000000bccc69e47d98498430b725f7ff5af5be936fb1ccde3fdcda3b0882a9082eab761e75b34da18d8923d70b481d89e2e936eecec248b3d456b580900a18bcd39b3948bc956139367b89dde7";
@@ -36,7 +37,7 @@ contract MockBigNumber {
   }
 
   //calls prepare_add, and by extension bn_add and bn_sub
-  function mock_bn_add(bytes memory a_val, bool a_neg, uint a_bitlen,  bytes memory b_val, bool b_neg, uint b_bitlen) public pure returns (bytes memory, bool, uint){
+  function mock_bn_add(bytes memory a_val, bool a_neg, uint a_bitlen, bytes memory b_val, bool b_neg, uint b_bitlen) public pure returns (bytes memory, bool, uint){
     BigNumber.instance memory a = BigNumber.instance(a_val, a_neg, a_bitlen);
     BigNumber.instance memory b = BigNumber.instance(b_val, b_neg, b_bitlen);
     BigNumber.instance memory res = a.prepare_add(b);
@@ -52,9 +53,9 @@ contract MockBigNumber {
 
     return (res.val, res.neg, res.bitlen);
   }
-  
+
   //calls bn_mul, and by extension add, sub and right_shift.
-  function mock_bn_mul(bytes memory a_val, bool a_neg, uint a_bitlen,  bytes memory b_val, bool b_neg, uint b_bitlen) public view returns(bytes memory, bool, uint){
+  function mock_bn_mul(bytes memory a_val, bool a_neg, uint a_bitlen,  bytes memory b_val, bool b_neg, uint b_bitlen) public view returns (bytes memory, bool, uint){
     BigNumber.instance memory a = BigNumber.instance(a_val, a_neg, a_bitlen);
     BigNumber.instance memory b = BigNumber.instance(b_val, b_neg, b_bitlen);
     BigNumber.instance memory res = a.bn_mul(b);
@@ -64,7 +65,7 @@ contract MockBigNumber {
 
   //stack too deep error when passing in 9 distinct variables as arguments where 3 bignums are expected.
   //instead we encode each msb/neg value in a bytes array and decode.
- function mock_is_prime(bytes memory prime_val, uint prime_msb, bytes memory randomness_vals, uint count_randomness) public returns(bool){ 
+ function mock_is_prime(bytes memory prime_val, uint prime_msb, bytes memory randomness_vals, uint count_randomness) public returns(bool){
 
       BigNumber.instance memory prime;
       BigNumber.instance[3] memory randomness;
@@ -83,15 +84,15 @@ contract MockBigNumber {
 
       bytes memory val;
       for(uint i=0;i<count_randomness;i++){
-        assembly { 
+        assembly {
           val := mload(0x40)
-          let success := call(450, 0x4, 0, randomness_ptr, randomness_length_base, add(add(val,0x20), offset), randomness_length_base) //copy to new mem location.       
+          let success := call(450, 0x4, 0, randomness_ptr, randomness_length_base, add(add(val,0x20), offset), randomness_length_base) //copy to new mem location.
           mstore(val, randomness_length_base) //store length of chunk.
           mstore(0x40, add(add(val,0x20),randomness_length)) //deref mem pointer.
           randomness_ptr :=add(randomness_ptr,randomness_length_base)
         }
         randomness[i].val = val; //assign val to randomness.
-        randomness[i].bitlen = BigNumber.get_bit_length(val); 
+        randomness[i].bitlen = BigNumber.get_bit_length(val);
         randomness[i].neg = false;
       }
 
@@ -102,91 +103,91 @@ contract MockBigNumber {
 
   //stack too deep error when passing in 9 distinct variables as arguments where 3 bignums are expected.
   //instead we encode each bitlen/neg value in a bytes array and decode.
-  function mock_modexp(bytes memory a_val, bytes memory a_extra, bytes memory b_val, bytes memory b_extra, bytes memory mod_val, bytes memory mod_extra) public view returns(bytes memory, bool, uint){    
+  function mock_modexp(bytes memory a_val, bytes memory a_extra, bytes memory b_val, bytes memory b_extra, bytes memory mod_val, bytes memory mod_extra) public view returns (bytes memory, bool, uint){
       BigNumber.instance memory a;
       BigNumber.instance memory b;
-      BigNumber.instance memory modd;
-    
+      BigNumber.instance memory _mod;
+
       uint neg;
       uint bitlen;
-      
+
       assembly {
          neg := mload(add(a_extra,0x20))
          bitlen := mload(add(a_extra,0x40))
       }
-      
+
       a.val = a_val;
       a.bitlen = bitlen;
       a.neg = (neg==1) ? true : false;
-      
+
       assembly {
          neg := mload(add(b_extra,0x20))
          bitlen := mload(add(b_extra,0x40))
       }
-      
+
       b.val = b_val;
       b.bitlen = bitlen;
       b.neg = (neg==1) ? true : false;
-      
+
       assembly {
          neg := mload(add(mod_extra,0x20))
          bitlen := mload(add(mod_extra,0x40))
       }
-      
-      modd.val = mod_val;
-      modd.bitlen = bitlen;
-      modd.neg = (neg==1) ? true : false;
-    
-      BigNumber.instance memory res = a.prepare_modexp(b,modd);
-      
+
+      _mod.val = mod_val;
+      _mod.bitlen = bitlen;
+      _mod.neg = (neg==1) ? true : false;
+
+      BigNumber.instance memory res = a.prepare_modexp(b, _mod);
+
       return (res.val, res.neg, res.bitlen);
   }
 
   //stack too deep error when passing in 9 distinct variables as arguments where 3 bignums are expected.
   //instead we encode each bitlen/neg value in a bytes array and decode.
-  function mock_bn_div(bytes memory a_val, bytes memory a_extra, bytes memory b_val, bytes memory b_extra, bytes memory res_val, bytes memory res_extra) public view returns(bytes memory, bool, uint){    
+  function mock_bn_div(bytes memory a_val, bytes memory a_extra, bytes memory b_val, bytes memory b_extra, bytes memory res_val, bytes memory res_extra) public view returns (bytes memory, bool, uint){
       BigNumber.instance memory a;
       BigNumber.instance memory b;
       BigNumber.instance memory expected;
-    
+
       uint neg;
       uint bitlen;
-      
+
       assembly {
          neg := mload(add(a_extra,0x20))
          bitlen := mload(add(a_extra,0x40))
       }
-      
+
       a.val = a_val;
       a.bitlen = bitlen;
       a.neg = (neg==1) ? true : false;
-      
+
       assembly {
          neg := mload(add(b_extra,0x20))
          bitlen := mload(add(b_extra,0x40))
       }
-      
+
       b.val = b_val;
       b.bitlen = bitlen;
       b.neg = (neg==1) ? true : false;
-      
+
       assembly {
          neg := mload(add(res_extra,0x20))
          bitlen := mload(add(res_extra,0x40))
       }
-      
+
       expected.val = res_val;
       expected.bitlen = bitlen;
       expected.neg = (neg==1) ? true : false;
-    
+
       BigNumber.instance memory res = a.bn_div(b,expected);
-      
+
       return (res.val, res.neg, res.bitlen);
   }
 
   //stack too deep error when passing in 9 distinct variables as arguments where 3 bignums are expected.
   //instead we encode each bitlen/neg value in a bytes array and decode.
-  function mock_modinverse(bytes memory a_val, uint a_bitlen, bytes memory m_val, uint m_bitlen, bytes memory n_val, uint n_bitlen) public view returns(bytes memory, bool, uint){    
+  function mock_modinverse(bytes memory a_val, uint a_bitlen, bytes memory m_val, uint m_bitlen, bytes memory n_val, uint n_bitlen) public view returns (bytes memory, bool, uint){
       BigNumber.instance memory a;
       BigNumber.instance memory m;
       BigNumber.instance memory n;
@@ -202,51 +203,51 @@ contract MockBigNumber {
       n.val = n_val;
       n.bitlen = n_bitlen;
       n.neg = false;
-    
+
       BigNumber.instance memory res = a.mod_inverse(m,n);
-      
+
       return (res.val, res.neg, res.bitlen);
   }
 
   //stack too deep error when passing in 9 distinct variables as arguments where 3 bignums are expected.
   //instead we encode each bitlen/neg value in a bytes array and decode.
-  function mock_modmul(bytes memory a_val, bytes memory a_extra, bytes memory b_val, bytes memory b_extra, bytes memory mod_val, bytes memory mod_extra) public view returns(bytes memory, bool, uint){    
+  function mock_modmul(bytes memory a_val, bytes memory a_extra, bytes memory b_val, bytes memory b_extra, bytes memory mod_val, bytes memory mod_extra) public view returns (bytes memory, bool, uint){
       BigNumber.instance memory a;
       BigNumber.instance memory b;
-      BigNumber.instance memory modd;
-    
+      BigNumber.instance memory _mod;
+
       uint neg;
       uint bitlen;
-      
+
       assembly {
          neg := mload(add(a_extra,0x20))
          bitlen := mload(add(a_extra,0x40))
       }
-      
+
       a.val = a_val;
       a.bitlen = bitlen;
       a.neg = (neg==1) ? true : false;
-      
+
       assembly {
          neg := mload(add(b_extra,0x20))
          bitlen := mload(add(b_extra,0x40))
       }
-      
+
       b.val = b_val;
       b.bitlen = bitlen;
       b.neg = (neg==1) ? true : false;
-      
+
       assembly {
          neg := mload(add(mod_extra,0x20))
          bitlen := mload(add(mod_extra,0x40))
       }
-      
-      modd.val = mod_val;
-      modd.bitlen = bitlen;
-      modd.neg = (neg==1) ? true : false;
-    
-      BigNumber.instance memory res = a.modmul(b,modd);
-      
+
+      _mod.val = mod_val;
+      _mod.bitlen = bitlen;
+      _mod.neg = (neg==1) ? true : false;
+
+      BigNumber.instance memory res = a.modmul(b, _mod);
+
       return (res.val, res.neg, res.bitlen);
   }
 }
